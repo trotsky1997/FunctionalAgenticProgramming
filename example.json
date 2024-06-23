@@ -1,0 +1,102 @@
+{
+    "$defs": {
+        "house": {
+            "properties": {
+                "price": {
+                    "title": "Price",
+                    "type": "integer"
+                },
+                "age": {
+                    "title": "Age",
+                    "type": "integer"
+                },
+                "address": {
+                    "title": "Address",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "price",
+                "age",
+                "address"
+            ],
+            "title": "house",
+            "type": "object"
+        },
+        "num_enum": {
+            "enum": [
+                "1",
+                "2",
+                "3"
+            ],
+            "title": "num_enum",
+            "type": "string"
+        },
+        "yes_enum": {
+            "enum": [
+                "Yes",
+                "No"
+            ],
+            "title": "yes_enum",
+            "type": "string"
+        }
+    },
+    "properties": {
+        "first_name": {
+            "title": "First Name",
+            "type": "string"
+        },
+        "last_name": {
+            "title": "Last Name",
+            "type": "string"
+        },
+        "year_of_birth": {
+            "title": "Year Of Birth",
+            "type": "integer"
+        },
+        "num_seasons_in_nba": {
+            "title": "Num Seasons In Nba",
+            "type": "integer"
+        },
+        "Yes": {
+            "$ref": "#/$defs/yes_enum"
+        },
+        "num": {
+            "$ref": "#/$defs/num_enum"
+        },
+        "pig": {
+            "anyOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "title": "Pig"
+        },
+        "home": {
+            "$ref": "#/$defs/house"
+        },
+        "gain": {
+            "items": {
+                "$ref": "#/$defs/house"
+            },
+            "title": "Gain",
+            "type": "array"
+        }
+    },
+    "required": [
+        "first_name",
+        "last_name",
+        "year_of_birth",
+        "num_seasons_in_nba",
+        "Yes",
+        "num",
+        "pig",
+        "home",
+        "gain"
+    ],
+    "title": "AnswerFormat",
+    "type": "object"
+}
