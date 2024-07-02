@@ -1,7 +1,7 @@
 import orjson
 import openai
 from pydantic import BaseModel
-from utils import get_schema_from_signature, get_return_schema_from_signature
+from utils import get_schema_from_signature, get_return_schema_from_signature,gen_func_desc
 from planning import Planer
 
 class LLMbeforeFunc: # LLM before function,turn a natural input to a function input
@@ -12,7 +12,7 @@ class LLMbeforeFunc: # LLM before function,turn a natural input to a function in
         self.input_schema = get_schema_from_signature(func)
         self.planner = planner = Planer(openai_client)
         self.__name__ = self.func.__name__
-        self.__doc__ = self.func.__doc__
+        self.__doc__ = gen_func_desc(self.func)
 
     def user_decorate(self,prompt):
         return {"role": "user", "content": prompt}
@@ -45,7 +45,7 @@ class LLMafterFunc: # LLM after function,接受一个函数的返回值，返回
         self.input_schema = get_schema_from_signature(func)
         self.planner = planner = Planer(openai_client)
         self.__name__ = self.func.__name__
-        self.__doc__ = self.func.__doc__
+        self.__doc__ = gen_func_desc(self.func)
 
     def user_decorate(self,prompt):
         return {"role": "user", "content": prompt}
@@ -78,7 +78,7 @@ class LLMpretendFunc:
         self.output_schema = get_return_schema_from_signature(func)
         self.instructions = f'You need to pretend to be a function named {func.__name__},\n Function docstrings: {self.func.__doc__}\n\nAnd becareful to {instruction}'
         self.__name__ = self.func.__name__
-        self.__doc__ = self.func.__doc__
+        self.__doc__ = gen_func_desc(self.func)
 
     def user_decorate(self,prompt):
         return {"role": "user", "content": prompt}
