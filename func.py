@@ -1,3 +1,4 @@
+import inspect
 import orjson
 import openai
 from pydantic import BaseModel
@@ -12,7 +13,17 @@ class LLMbeforeFunc: # LLM before function,turn a natural input to a function in
         self.input_schema = get_schema_from_signature(func)
         self.planner = planner = Planer(openai_client)
         self.__name__ = self.func.__name__
-        self.__doc__ = gen_func_desc(self.func)
+        self.doc = None
+
+    @property
+    def __doc__(self):
+        if self.doc:
+            return self.doc
+        if inspect.isfunction(self.func):
+            self.doc = gen_func_desc(self.func)
+            return self.doc
+        else:
+            return self.func.__doc__
 
     def user_decorate(self,prompt):
         return {"role": "user", "content": prompt}
@@ -45,7 +56,17 @@ class LLMafterFunc: # LLM after function,接受一个函数的返回值，返回
         self.input_schema = get_schema_from_signature(func)
         self.planner = planner = Planer(openai_client)
         self.__name__ = self.func.__name__
-        self.__doc__ = gen_func_desc(self.func)
+        self.doc = None
+
+    @property
+    def __doc__(self):
+        if self.doc:
+            return self.doc
+        if inspect.isfunction(self.func):
+            self.doc = gen_func_desc(self.func)
+            return self.doc
+        else:
+            return self.func.__doc__
 
     def user_decorate(self,prompt):
         return {"role": "user", "content": prompt}
@@ -78,7 +99,17 @@ class LLMpretendFunc:
         self.output_schema = get_return_schema_from_signature(func)
         self.instructions = f'You need to pretend to be a function named {func.__name__},\n Function docstrings: {self.func.__doc__}\n\nAnd becareful to {instruction}'
         self.__name__ = self.func.__name__
-        self.__doc__ = gen_func_desc(self.func)
+        self.doc = None
+
+    @property
+    def __doc__(self):
+        if self.doc:
+            return self.doc
+        if inspect.isfunction(self.func):
+            self.doc = gen_func_desc(self.func)
+            return self.doc
+        else:
+            return self.func.__doc__
 
     def user_decorate(self,prompt):
         return {"role": "user", "content": prompt}

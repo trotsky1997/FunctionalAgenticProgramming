@@ -1,20 +1,16 @@
-from openai import OpenAI
-client = OpenAI(
-    base_url='https://api.chemllm.org/v1',
-    api_key="token-abc123",
-)
+from langchain_community.agent_toolkits import PlayWrightBrowserToolkit
+import nest_asyncio
 
-def user_decorate(prompt):
-    return {"role": "user", "content": prompt}
-def assistant_decorate(ans):
-    return {"role": "assistant", "content": ans}
+nest_asyncio.apply()
 
-history = [user_decorate('Hello, I am a user.')]
+from langchain_community.document_loaders import PlaywrightURLLoader
 
-action = client.chat.completions.create(
-        model="AI4Chem/ChemLLM-20B-Chat-DPO",
-        messages=history,
-        extra_body={
-        "guided_json": self.input_schema,
-        "guided_decoding_backend": "lm-format-enforcer"
-        }).choices[0].message.content
+urls = [
+    "https://www.wolframalpha.com/input?i=how+many+elements+in+the+periodic+table",
+]
+
+loader = PlaywrightURLLoader(urls=urls, remove_selectors=["header", "footer"])
+
+data = loader.load()
+
+print(data[0])

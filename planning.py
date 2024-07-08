@@ -112,17 +112,24 @@ class ToolSelect:
         self.input_schema = create_plan_schema(knowledgebanks=[rag.__name__ for rag in rag_retrivel],functions=[tool.__name__ for tool in tools]+['End'])
         if history_strategy == 'temp':
             history = deepcopy(history)
-        tool_list = []
-        for rag in rag_retrivel:
-            tool_list.append(f"RAG name: {rag.__name__}\nRAG docstrings: {rag.__doc__}")
-        for tool in tools:
-            tool_list.append(f"Function name: {tool.__name__}")
+        # tool_list = []
+        # for rag in rag_retrivel:
+        #     tool_list.append(f"RAG name: {rag.__name__}\nRAG docstrings: {rag.__doc__}")
+        # for tool in tools:
+        #     tool_list.append(f"Function name: {tool.__name__}")
 
-        tool_list.append("special name: `End` for stop or no need for tool use.")
-    
-        # related_docs = "\n\n".join([item['chunk'] for item in self.memory.search(query=natrual_input,top_n=3)]) + '\n\n' +"special name: `End` for stop or no need for tool use." 
-        # print(related_docs)
-        prompt = meta_tool_selection_prompt.format(context="\n\n".join(tool_list), query=natrual_input)
+        # tool_list.append("special name: `End` for stop or no need for tool use.")
+
+        for rag in rag_retrivel:
+            self.memory.save([f"RAG name: {rag.__name__}\nRAG docstrings: {rag.__doc__}"],[{'type':'rag'}],)
+        for tool in tools:
+            self.memory.save([f"Function name: {tool.__name__}\nFunction docstrings: {tool.__doc__}"],[{'type':'tool'}])
+
+        self.memory.save(["special name: `End` for stop or no need for tool use."],[{'type':'special'}])
+
+        related_docs = "\n\n".join([item['chunk'] for item in self.memory.search(query=natrual_input,top_n=3)]) + '\n\n' +"special name: `End` for stop or no need for tool use." 
+
+        prompt = meta_tool_selection_prompt.format(context="\n\n".join(related_docs), query=natrual_input)
         history = safe_history_append(history, 'user', prompt)
         action = self.client.chat.completions.create(
                 model="AI4Chem/ChemLLM-20B-Chat-DPO",
@@ -134,6 +141,10 @@ class ToolSelect:
         history = safe_history_append(history, 'assistant', action)
         action_dict = orjson.loads(action)
         return action_dict, history
+    
+
+class ReflexionStepExcutor:
+    pass
 
 class Planer:
     def __init__(self, openai_client):
@@ -153,13 +164,18 @@ class Planer:
         self.actions_map['End'] = None
         # history += [self.user_decorate(natrual_input),]
         plan,_ = self.tool_planning(natrual_input,rag_retrivel=rag_retrivel,tools=tools,history=history)
-        for i,step in enumerate(plan.split('\n')[:self.max_iter]):
+        steps = [step for step in plan.split('\n') if not step.isspace() and step]
+        print(steps)
+        for i,step in enumerate(steps[:self.max_iter]):
             action_dict,history = self.tool_select(step,rag_retrivel=rag_retrivel,tools=tools,history=history)
             if action_dict.get('action') == 'End':
                 history += [self.user_decorate('End to stop.\nSummrize your observations.'),]
                 break
-            print(f"Calling tool {action_dict.get('action')} with intention {action_dict.get('intention')}")
-            observe = self.actions_map.get(action_dict.get('action'))(''.join(action_dict.get('intention')),history=deepcopy(history))
+            print(f"To fullfill plan step {step}, calling tool {action_dict.get('action')} with intention {action_dict.get('intention')}")
+            try:
+                observe = self.actions_map.get(action_dict.get('action'))(''.join(action_dict.get('intention')),history=deepcopy(history))
+            except Exception as e:
+                observe = f"Error happened when calling tool {action_dict.get('action')}, error message: {e}"
             if i == self.max_iter - 1:
                 history += [self.user_decorate(f'"Function name":{action_dict.get("action")},\n"observation":{observe}'+'\nSummrize your observations.'),]
                 break

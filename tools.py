@@ -2,6 +2,7 @@ import json
 import re
 from typing import List, Union
 import os
+from tqdm import tqdm
 import wikipedia
 from semanticscholar import SemanticScholar
 sch = SemanticScholar()
@@ -27,6 +28,13 @@ import requests
 from rdkit import Chem, DataStructs
 from rdkit.Chem import AllChem
 from langchain_community.utilities import SearxSearchWrapper
+
+from openai import OpenAI
+client = OpenAI(
+    base_url='https://api.chemllm.org/v1',
+    api_key="token-abc123",
+)
+
 
 safety_summary_prompt = (
     "Your task is to parse through the data provided and provide a summary of important health, laboratory, and environemntal safety information."
@@ -89,7 +97,7 @@ def is_smiles( text: str) -> bool:
 
 def is_multiple_smiles( text: str) -> bool:
     """
-    The function `is_multiple_smiles` checks if the input text contains a smiley face and a period.
+    The function `is_multiple_smiles` checks if the input text contains a molecule smiles.
     """
     if is_smiles(text):
         return "." in text
@@ -144,12 +152,31 @@ def tanimoto( s1: str, s2: str) -> str:
     except (TypeError, ValueError, AttributeError):
         return "Error: Not a valid SMILES string"
 
+
+def query2MoleculeNameList(query):
+    '''
+    Find molecules with name meet requirements of {query}, in dot splited SMILES or Chemical names.
+    '''
+
+    q = f'Try to find molecules with name meet requirements of {query}, in dot splited SMILES or Chemical names.'
+    history += [{'role':'user','content':q},]
+    ret = client.chat.completions.create(
+        model="AI4Chem/ChemLLM-20B-Chat-DPO",
+        messages=history,
+        ).choices[0].message.content
+
+    return ret
+
 def query2smiles(
     query: str,
 ) -> str:
     """
     Input a molecule name, returns SMILES.
+    输入一个化合物学名，输出其smiles.
     """
+
+    query = query2MoleculeNameList(query)
+
     url = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/{}/{}"
     if is_smiles(query):
         if not is_multiple_smiles(query):
@@ -173,6 +200,8 @@ def query2cas( query: str) -> str:
     """
     The function `query2cas` takes a molecule query, retrieves its PubChem CID, and returns its CAS
     number if available.
+
+    Query 支持的格式有：CAS号、SMILES、化合物名
     """
     url_cid = (
             "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/{}/{}/cids/JSON")
@@ -571,7 +600,80 @@ def ddg_text_search(keywords:str,return_num:int=2) -> List[str]:
 #     reuslts = list(ddgs.answers(text))
 #     return reuslts[:return_num]
 
+from scholarly import scholarly, ProxyGenerator
 
-all_functions = [is_smiles,is_multiple_smiles,split_smiles,is_cas,largest_mol,canonical_smiles,
+def search_papers(query:str, total_papers:int):
+    print(f"正在搜索关于 '{query}'的最新研究论文...")
+    
+    # 设置代理地址为本地 Clash for Windows 的地址和端口
+    pg = ProxyGenerator()
+    pg.SingleProxy('127.0.0.1:7890')
+
+    # 应用代理设置
+    scholarly.use_proxy(pg)
+
+    # 构建搜索查询，指定特定网站
+    search_query = scholarly.search_pubs(f"{query}") # site:{site}
+    papers = []
+
+    try:
+        with tqdm(total=total_papers, desc="收集论文进度", unit="篇") as pbar:
+            for i, paper in enumerate(search_query, start=1):
+                # 确保论文来自指定的网站
+                # 只保存标题、摘要、URL和出版年份
+                papers.append({
+                    'title': paper['bib']['title'],
+                    'abstract': paper['bib'].get('abstract', 'No abstract available'),
+                    'year': paper['bib'].get('pub_year', None)
+                })
+
+                # 更新进度条
+                pbar.update(1)
+                if i >= total_papers:
+                    break
+
+    except KeyError:
+        pass
+
+    # 按出版年份对结果进行排序，年份越新越靠前
+    papers.sort(key=lambda x: x['year'] if x['year'] is not None else -float('inf'), reverse=True)
+    
+    print(f"找到 {len(papers)} 篇关于 '{query}' 的论文。")
+    
+    return papers
+
+
+import translators as ts
+def translate_to_eng(text:str) -> str:
+    """
+    The function `translator` takes a text string, source language, and target language as input and
+    returns the translated text.
+    """
+    ret = ts.translate_text(text, to_language='en')
+    return ret
+
+def translate_to_chn(text:str) -> str:
+    """
+    The function `translator` takes a text string, source language, and target language as input and
+    returns the translated text.
+    """
+    ret = ts.translate_text(text, to_language='zh-Hans')
+    return ret
+
+from wolfram import query_wolfram
+
+def wolfram_alpha_query(query:str):
+    '''
+
+    Wolfram Alpha是一个基于知识的计算引擎，由Stephen Wolfram及其公司Wolfram Research开发。它不同于传统的搜索引擎，Wolfram Alpha旨在提供直接的答案和计算结果，而不是链接列表。用户可以输入问题、方程式、日期、地点等，Wolfram Alpha会利用其庞大的数据库和计算能力，返回答案和相关信息。
+
+Wolfram Alpha的应用范围非常广泛，包括数学、科学、工程、天气、历史、地理、经济学、文化艺术等领域。它能够解决复杂的数学问题、提供科学数据的解析、进行统计分析、日期和时间计算、地理信息查询等。
+
+Wolfram Alpha的背后是Wolfram语言，这是一种高级编程语言，专为符号计算、数值计算、数据可视化和其他计算密集型任务设计。Wolfram Alpha通过将Wolfram语言的强大功能与其庞大的知识库结合，能够提供精确且深入的信息和解答。
+    '''
+    ret = query_wolfram(query)
+    return ret
+
+all_functions = [is_smiles,is_multiple_smiles,split_smiles,is_cas,largest_mol,canonical_smiles,query2MoleculeNameList,
                  tanimoto,query2smiles,query2cas,extract_function_groups,calculate_mole_similarity,calc_mole_weight,
-                 control_chemical_check,run_similar_control_chem_check,run_explosive_check,wikipedia_summary,search_papers_in_semantic_scholar,ddg_text_search]
+                 control_chemical_check,run_similar_control_chem_check,run_explosive_check,wikipedia_summary,search_papers,ddg_text_search,wolfram_alpha_query]#translate_to_eng,translate_to_chn

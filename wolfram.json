@@ -1,0 +1,116 @@
+{
+    "queryresult": {
+        "success": true,
+        "error": false,
+        "numpods": 5,
+        "datatypes": "",
+        "timedout": "",
+        "timedoutpods": "",
+        "timing": 0.5720000000000001,
+        "parsetiming": 0.20700000000000002,
+        "parsetimedout": false,
+        "recalculate": "",
+        "id": "MSP6751hcd5d9cgia301f40000355edai033310455",
+        "host": "https:\/\/www6b3.wolframalpha.com",
+        "server": "9",
+        "related": "https:\/\/www6b3.wolframalpha.com\/api\/v1\/relatedQueries.jsp?id=MSPa6761hcd5d9cgia301f400001261bg6d8g31b2221494138648170584556",
+        "version": "2.6",
+        "inputstring": "x+8=9",
+        "pods": [
+            {
+                "title": "Input",
+                "scanner": "Identity",
+                "id": "Input",
+                "position": 100,
+                "error": false,
+                "numsubpods": 1,
+                "subpods": [
+                    {
+                        "title": "",
+                        "plaintext": "x + 8 = 9"
+                    }
+                ],
+                "expressiontypes": {
+                    "name": "Default"
+                }
+            },
+            {
+                "title": "Plot",
+                "scanner": "Plot",
+                "id": "RootPlot",
+                "position": 200,
+                "error": false,
+                "numsubpods": 1,
+                "subpods": [
+                    {
+                        "title": "",
+                        "plaintext": ""
+                    }
+                ],
+                "expressiontypes": {
+                    "name": "Default"
+                }
+            },
+            {
+                "title": "Alternate form",
+                "scanner": "Simplification",
+                "id": "AlternateForm",
+                "position": 300,
+                "error": false,
+                "numsubpods": 1,
+                "subpods": [
+                    {
+                        "title": "",
+                        "plaintext": "x - 1 = 0"
+                    }
+                ],
+                "expressiontypes": {
+                    "name": "Default"
+                }
+            },
+            {
+                "title": "Number line",
+                "scanner": "Reduce",
+                "id": "NumberLine",
+                "position": 400,
+                "error": false,
+                "numsubpods": 1,
+                "subpods": [
+                    {
+                        "title": "",
+                        "plaintext": ""
+                    }
+                ],
+                "expressiontypes": {
+                    "name": "Default"
+                }
+            },
+            {
+                "title": "Solution",
+                "scanner": "Reduce",
+                "id": "Solution",
+                "position": 500,
+                "error": false,
+                "numsubpods": 1,
+                "primary": true,
+                "subpods": [
+                    {
+                        "title": "",
+                        "plaintext": "x = 1"
+                    }
+                ],
+                "expressiontypes": {
+                    "name": "Default"
+                },
+                "states": [
+                    {
+                        "name": "Step-by-step solution",
+                        "input": "Solution__Step-by-step solution",
+                        "stepbystep": true,
+                        "buttonstyle": "StepByStepSolution"
+                    }
+                ]
+            }
+        ]
+    }
+}
